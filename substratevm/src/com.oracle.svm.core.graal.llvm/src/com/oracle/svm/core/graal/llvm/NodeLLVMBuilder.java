@@ -27,6 +27,7 @@ package com.oracle.svm.core.graal.llvm;
 import static org.graalvm.compiler.debug.GraalError.shouldNotReachHere;
 import static org.graalvm.compiler.debug.GraalError.unimplemented;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,6 +36,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.oracle.objectfile.debugentry.TypeEntry;
+import com.oracle.objectfile.debuginfo.DebugInfoProvider;
+import com.oracle.svm.core.graal.llvm.debug.LLVMNativeImageDebugInfoProvider;
 import org.graalvm.compiler.code.CompilationResult;
 import org.graalvm.compiler.core.common.NumUtil;
 import org.graalvm.compiler.core.common.calc.Condition;
@@ -130,6 +134,7 @@ public class NodeLLVMBuilder implements NodeLIRBuilderTool, SubstrateNodeLIRBuil
     private final LLVMIRBuilder builder;
     private final RuntimeConfiguration runtimeConfiguration;
     private final DebugInfoBuilder debugInfoBuilder;
+    private final LLVMNativeImageDebugInfoProvider debugInfoProvider;
 
     private Map<Node, LLVMValueWrapper> valueMap = new HashMap<>();
     private final Set<AbstractBlockBase<?>> processedBlocks = new HashSet<>();
@@ -141,6 +146,7 @@ public class NodeLLVMBuilder implements NodeLIRBuilderTool, SubstrateNodeLIRBuil
         this.builder = gen.getBuilder();
         this.runtimeConfiguration = runtimeConfiguration;
         this.debugInfoBuilder = new SubstrateDebugInfoBuilder(graph, gen.getProviders().getMetaAccessExtensionProvider(), this);
+        this.debugInfoProvider = new LLVMNativeImageDebugInfoProvider(graph.getDebug());
         setCompilationResultMethod(gen.getCompilationResult(), graph);
 
         for (Block block : graph.getLastSchedule().getCFG().getBlocks()) {
@@ -276,6 +282,20 @@ public class NodeLLVMBuilder implements NodeLIRBuilderTool, SubstrateNodeLIRBuil
 
         for (Node node : blockMap.get(block)) {
             if (node instanceof ValueNode) {
+                String n = gen.getCompilationResult().getName();
+                if (n.contains("Test_main") && n.contains("invoke")) {
+                    DebugInfoProvider.DebugLineInfo debugLineInfo = debugInfoProvider.getLineInfo(node.getNodeSourcePosition());
+                    if(debugLineInfo != null) {
+                        String fileNameAtLine = debugLineInfo.fileName();
+                        Path filePathAtLine = debugLineInfo.filePath();
+                        String classNameAtLine = TypeEntry.canonicalize(debugLineInfo.ownerType());
+                        String methodNameAtLine = debugLineInfo.name();
+//                        String symbolNameAtLine = debugLineInfo.symbolNameForMethod();
+                        int line = debugLineInfo.line();
+
+                        System.out.printf("SubRange %s.%s %s %s:%d]\n", classNameAtLine, methodNameAtLine, filePathAtLine, fileNameAtLine, line);
+                    }
+                }
                 /*
                  * There can be cases in which the result of an instruction is already set before by
                  * other instructions.

@@ -55,6 +55,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import com.oracle.svm.hosted.image.sources.SourceManager;
 import org.graalvm.collections.EconomicSet;
 import org.graalvm.collections.Pair;
 import org.graalvm.compiler.api.replacements.Fold;
@@ -594,6 +595,7 @@ public class NativeImageGenerator {
             featureHandler.forEachFeature(feature -> feature.beforeCompilation(beforeCompilationConfig));
 
             runtime.updateLazyState(hMetaAccess);
+            ImageSingletons.add(SourceManager.class, new SourceManager());
 
             NativeImageCodeCache codeCache;
             CompileQueue compileQueue;
