@@ -35,13 +35,13 @@ import org.graalvm.compiler.debug.DebugContext;
  */
 public class DwarfStrSectionImpl extends DwarfSectionImpl {
     public DwarfStrSectionImpl(DwarfDebugInfo dwarfSections) {
-        super(dwarfSections);
+        super(dwarfSections, DwarfDebugInfo.SectionType.DWARF_STR);
     }
 
-    @Override
-    public String getSectionName() {
-        return DwarfDebugInfo.DW_STR_SECTION_NAME;
-    }
+//    @Override
+//    public String getSectionName() {
+//        return DwarfDebugInfo.DW_STR_SECTION_NAME;
+//    }
 
     @Override
     public void createContent() {
@@ -84,11 +84,11 @@ public class DwarfStrSectionImpl extends DwarfSectionImpl {
     /**
      * The debug_str section depends on info section.
      */
-    private static final String TARGET_SECTION_NAME = DwarfDebugInfo.DW_INFO_SECTION_NAME;
+    private static final DwarfDebugInfo.SectionType TARGET_SECTION = DwarfDebugInfo.SectionType.DWARF_INFO;
 
     @Override
     public String targetSectionName() {
-        return TARGET_SECTION_NAME;
+        return TARGET_SECTION.getSectionName(dwarfSections.isMachO);
     }
 
     private final LayoutDecision.Kind[] targetSectionKinds = {

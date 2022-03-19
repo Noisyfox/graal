@@ -130,13 +130,13 @@ public class DwarfLineSectionImpl extends DwarfSectionImpl {
     private static final byte DW_LNE_define_file = 3;
 
     DwarfLineSectionImpl(DwarfDebugInfo dwarfSections) {
-        super(dwarfSections);
+        super(dwarfSections, DwarfDebugInfo.SectionType.DWARF_LINE);
     }
 
-    @Override
-    public String getSectionName() {
-        return DwarfDebugInfo.DW_LINE_SECTION_NAME;
-    }
+//    @Override
+//    public String getSectionName() {
+//        return DwarfDebugInfo.DW_LINE_SECTION_NAME;
+//    }
 
     @Override
     public void createContent() {
@@ -262,7 +262,7 @@ public class DwarfLineSectionImpl extends DwarfSectionImpl {
 
     @Override
     public byte[] getOrDecideContent(Map<ObjectFile.Element, LayoutDecisionMap> alreadyDecided, byte[] contentHint) {
-        ObjectFile.Element textElement = getElement().getOwner().elementForName(".text");
+        ObjectFile.Element textElement = getElement().getOwner().elementForName(DwarfDebugInfo.SectionType.TEXT.getSectionName(dwarfSections.isMachO));
         LayoutDecisionMap decisionMap = alreadyDecided.get(textElement);
         if (decisionMap != null) {
             Object valueObj = decisionMap.getDecidedValue(LayoutDecision.Kind.VADDR);
@@ -938,11 +938,11 @@ public class DwarfLineSectionImpl extends DwarfSectionImpl {
     /**
      * The debug_line section depends on debug_str section.
      */
-    private static final String TARGET_SECTION_NAME = DwarfDebugInfo.DW_STR_SECTION_NAME;
+    private static final DwarfDebugInfo.SectionType TARGET_SECTION = DwarfDebugInfo.SectionType.DWARF_STR;
 
     @Override
     public String targetSectionName() {
-        return TARGET_SECTION_NAME;
+        return TARGET_SECTION.getSectionName(dwarfSections.isMachO);
     }
 
     private final LayoutDecision.Kind[] targetSectionKinds = {

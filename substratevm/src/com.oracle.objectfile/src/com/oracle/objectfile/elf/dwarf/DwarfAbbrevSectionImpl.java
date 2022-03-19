@@ -35,13 +35,13 @@ import org.graalvm.compiler.debug.DebugContext;
 public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
 
     public DwarfAbbrevSectionImpl(DwarfDebugInfo dwarfSections) {
-        super(dwarfSections);
+        super(dwarfSections, DwarfDebugInfo.SectionType.DWARF_ABBREV);
     }
 
-    @Override
-    public String getSectionName() {
-        return DwarfDebugInfo.DW_ABBREV_SECTION_NAME;
-    }
+//    @Override
+//    public String getSectionName() {
+//        return DwarfDebugInfo.DW_ABBREV_SECTION_NAME;
+//    }
 
     @Override
     public void createContent() {
@@ -1460,11 +1460,11 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
     /**
      * The debug_abbrev section depends on debug_aranges section.
      */
-    private static final String TARGET_SECTION_NAME = DwarfDebugInfo.DW_ARANGES_SECTION_NAME;
+    private static final DwarfDebugInfo.SectionType TARGET_SECTION = DwarfDebugInfo.SectionType.DWARF_ARABGES;
 
     @Override
     public String targetSectionName() {
-        return TARGET_SECTION_NAME;
+        return TARGET_SECTION.getSectionName(dwarfSections.isMachO);
     }
 
     private final LayoutDecision.Kind[] targetSectionKinds = {

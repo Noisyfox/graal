@@ -43,13 +43,13 @@ public abstract class DwarfFrameSectionImpl extends DwarfSectionImpl {
     private static final int PADDING_NOPS_ALIGNMENT = 8;
 
     public DwarfFrameSectionImpl(DwarfDebugInfo dwarfSections) {
-        super(dwarfSections);
+        super(dwarfSections, DwarfDebugInfo.SectionType.DWARF_FRAME);
     }
 
-    @Override
-    public String getSectionName() {
-        return DwarfDebugInfo.DW_FRAME_SECTION_NAME;
-    }
+//    @Override
+//    public String getSectionName() {
+//        return DwarfDebugInfo.DW_FRAME_SECTION_NAME;
+//    }
 
     @Override
     public void createContent() {
@@ -377,11 +377,11 @@ public abstract class DwarfFrameSectionImpl extends DwarfSectionImpl {
     /**
      * The debug_frame section depends on debug_line section.
      */
-    private static final String TARGET_SECTION_NAME = DwarfDebugInfo.DW_LINE_SECTION_NAME;
+    private static final DwarfDebugInfo.SectionType TARGET_SECTION = DwarfDebugInfo.SectionType.DWARF_LINE;
 
     @Override
     public String targetSectionName() {
-        return TARGET_SECTION_NAME;
+        return TARGET_SECTION.getSectionName(dwarfSections.isMachO);
     }
 
     private final LayoutDecision.Kind[] targetSectionKinds = {

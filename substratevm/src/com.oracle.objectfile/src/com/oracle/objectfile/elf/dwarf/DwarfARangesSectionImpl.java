@@ -46,13 +46,13 @@ public class DwarfARangesSectionImpl extends DwarfSectionImpl {
     private static final int DW_AR_HEADER_PAD_SIZE = 4;
 
     public DwarfARangesSectionImpl(DwarfDebugInfo dwarfSections) {
-        super(dwarfSections);
+        super(dwarfSections, DwarfDebugInfo.SectionType.DWARF_ARABGES);
     }
 
-    @Override
-    public String getSectionName() {
-        return DwarfDebugInfo.DW_ARANGES_SECTION_NAME;
-    }
+//    @Override
+//    public String getSectionName() {
+//        return DwarfDebugInfo.DW_ARANGES_SECTION_NAME;
+//    }
 
     @Override
     public void createContent() {
@@ -138,7 +138,7 @@ public class DwarfARangesSectionImpl extends DwarfSectionImpl {
 
     @Override
     public byte[] getOrDecideContent(Map<ObjectFile.Element, LayoutDecisionMap> alreadyDecided, byte[] contentHint) {
-        ObjectFile.Element textElement = getElement().getOwner().elementForName(".text");
+        ObjectFile.Element textElement = getElement().getOwner().elementForName(DwarfDebugInfo.SectionType.TEXT.getSectionName(dwarfSections.isMachO));
         LayoutDecisionMap decisionMap = alreadyDecided.get(textElement);
         if (decisionMap != null) {
             Object valueObj = decisionMap.getDecidedValue(LayoutDecision.Kind.VADDR);
@@ -272,11 +272,11 @@ public class DwarfARangesSectionImpl extends DwarfSectionImpl {
     /*
      * The debug_aranges section depends on debug_frame section.
      */
-    private static final String TARGET_SECTION_NAME = DwarfDebugInfo.DW_FRAME_SECTION_NAME;
+    private static final DwarfDebugInfo.SectionType TARGET_SECTION = DwarfDebugInfo.SectionType.DWARF_FRAME;
 
     @Override
     public String targetSectionName() {
-        return TARGET_SECTION_NAME;
+        return TARGET_SECTION.getSectionName(dwarfSections.isMachO);
     }
 
     private final LayoutDecision.Kind[] targetSectionKinds = {

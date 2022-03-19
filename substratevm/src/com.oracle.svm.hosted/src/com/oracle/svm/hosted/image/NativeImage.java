@@ -181,7 +181,7 @@ public abstract class NativeImage extends AbstractImage {
         resultingImageSize = (int) outputFile.toFile().length();
         debugInfoSize = 0;
         for (Element e : objectFile.getElements()) {
-            if (e.getName().contains(".debug")) {
+            if (e.getName().contains(".debug") || e.getName().contains("__debug")) {
                 debugInfoSize += e.getMemSize(objectFile.getDecisionsByElement());
             }
         }

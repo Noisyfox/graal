@@ -68,13 +68,13 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
     private static final int DW_DIE_HEADER_SIZE = 11;
 
     public DwarfInfoSectionImpl(DwarfDebugInfo dwarfSections) {
-        super(dwarfSections);
+        super(dwarfSections, DwarfDebugInfo.SectionType.DWARF_INFO);
     }
 
-    @Override
-    public String getSectionName() {
-        return DwarfDebugInfo.DW_INFO_SECTION_NAME;
-    }
+//    @Override
+//    public String getSectionName() {
+//        return DwarfDebugInfo.DW_INFO_SECTION_NAME;
+//    }
 
     @Override
     public Set<BuildDependency> getDependencies(Map<ObjectFile.Element, LayoutDecisionMap> decisions) {
@@ -1647,11 +1647,11 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
     /**
      * The debug_info section depends on abbrev section.
      */
-    protected static final String TARGET_SECTION_NAME = DwarfDebugInfo.TEXT_SECTION_NAME;
+    protected static final DwarfDebugInfo.SectionType TARGET_SECTION = DwarfDebugInfo.SectionType.TEXT;
 
     @Override
     public String targetSectionName() {
-        return TARGET_SECTION_NAME;
+        return TARGET_SECTION.getSectionName(dwarfSections.isMachO);
     }
 
     private final LayoutDecision.Kind[] targetSectionKinds = {

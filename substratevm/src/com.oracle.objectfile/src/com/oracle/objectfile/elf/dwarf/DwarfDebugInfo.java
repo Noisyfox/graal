@@ -46,14 +46,40 @@ public class DwarfDebugInfo extends DebugInfoBase {
     /*
      * Names of the different ELF sections we create or reference in reverse dependency order.
      */
-    public static final String TEXT_SECTION_NAME = ".text";
+//    public static final String TEXT_SECTION_NAME = ".text";
     public static final String HEAP_BEGIN_NAME = "__svm_heap_begin";
-    public static final String DW_STR_SECTION_NAME = ".debug_str";
-    public static final String DW_LINE_SECTION_NAME = ".debug_line";
-    public static final String DW_FRAME_SECTION_NAME = ".debug_frame";
-    public static final String DW_ABBREV_SECTION_NAME = ".debug_abbrev";
-    public static final String DW_INFO_SECTION_NAME = ".debug_info";
-    public static final String DW_ARANGES_SECTION_NAME = ".debug_aranges";
+
+    public static final String SECTION_NAME_PREFIX_ELF = ".";
+    public static final String SECTION_NAME_PREFIX_MACHO = "__";
+
+    public enum SectionType {
+        TEXT("text"),
+        DWARF_STR("debug_str"),
+        DWARF_LINE("debug_line"),
+        DWARF_FRAME("debug_frame"),
+        DWARF_ABBREV("debug_abbrev"),
+        DWARF_INFO("debug_info"),
+        DWARF_ARABGES("debug_aranges"),
+        ;
+
+        private final String name;
+
+        SectionType(String name) {
+            this.name = name;
+        }
+
+        public String getSectionName(Boolean isMachO) {
+            return (isMachO ?
+                    SECTION_NAME_PREFIX_MACHO : SECTION_NAME_PREFIX_ELF) + name;
+        }
+    }
+
+//    public static final String DW_STR_SECTION_NAME = ".debug_str";
+//    public static final String DW_LINE_SECTION_NAME = ".debug_line";
+//    public static final String DW_FRAME_SECTION_NAME = ".debug_frame";
+//    public static final String DW_ABBREV_SECTION_NAME = ".debug_abbrev";
+//    public static final String DW_INFO_SECTION_NAME = ".debug_info";
+//    public static final String DW_ARANGES_SECTION_NAME = ".debug_aranges";
 
     /**
      * Currently generated debug info relies on DWARF spec version 4.
@@ -289,6 +315,7 @@ public class DwarfDebugInfo extends DebugInfoBase {
      */
     public static final String HUB_TYPE_NAME = "java.lang.Class";
 
+    public final Boolean isMachO;
     private DwarfStrSectionImpl dwarfStrSection;
     private DwarfAbbrevSectionImpl dwarfAbbrevSection;
     private DwarfInfoSectionImpl dwarfInfoSection;
@@ -312,8 +339,9 @@ public class DwarfDebugInfo extends DebugInfoBase {
      */
     private HashMap<String, DwarfTypeProperties> propertiesIndex;
 
-    public DwarfDebugInfo(ELFMachine elfMachine, ByteOrder byteOrder) {
+    public DwarfDebugInfo(Boolean isMachO, ELFMachine elfMachine, ByteOrder byteOrder) {
         super(byteOrder);
+        this.isMachO = isMachO;
         this.elfMachine = elfMachine;
         dwarfStrSection = new DwarfStrSectionImpl(this);
         dwarfAbbrevSection = new DwarfAbbrevSectionImpl(this);

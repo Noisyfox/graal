@@ -48,14 +48,16 @@ import java.util.stream.Stream;
  * A class from which all DWARF debug sections inherit providing common behaviours.
  */
 public abstract class DwarfSectionImpl extends BasicProgbitsSectionImpl {
+    protected final DwarfDebugInfo.SectionType type;
     protected DwarfDebugInfo dwarfSections;
     protected boolean debug = false;
     protected long debugTextBase = 0;
     protected long debugAddress = 0;
     protected int debugBase = 0;
 
-    public DwarfSectionImpl(DwarfDebugInfo dwarfSections) {
+    public DwarfSectionImpl(DwarfDebugInfo dwarfSections, DwarfDebugInfo.SectionType type) {
         this.dwarfSections = dwarfSections;
+        this.type = type;
     }
 
     public boolean isAArch64() {
@@ -83,7 +85,7 @@ public abstract class DwarfSectionImpl extends BasicProgbitsSectionImpl {
     /**
      * Check whether the contents byte array has been sized and created. n.b. this does not imply
      * that data has been written to the byte array.
-     * 
+     *
      * @return true if the contents byte array has been sized and created otherwise false.
      */
     public boolean contentByteArrayCreated() {
@@ -104,8 +106,8 @@ public abstract class DwarfSectionImpl extends BasicProgbitsSectionImpl {
          * context key. For example messages for info section will be keyed using dwarf.debug_info.
          * Other info formats use their own format-specific prefix.
          */
-        assert getSectionName().startsWith(".debug");
-        return "dwarf" + getSectionName();
+        assert type.getSectionName(false).startsWith(".debug");
+        return "dwarf" + type.getSectionName(false);
     }
 
     protected void enableLog(DebugContext context, int pos) {
@@ -206,7 +208,7 @@ public abstract class DwarfSectionImpl extends BasicProgbitsSectionImpl {
         /*
          * Mark address so it is relocated relative to the start of the text segment.
          */
-        markRelocationSite(pos, ObjectFile.RelocationKind.DIRECT_8, DwarfDebugInfo.TEXT_SECTION_NAME, l);
+        markRelocationSite(pos, ObjectFile.RelocationKind.DIRECT_8, DwarfDebugInfo.SectionType.TEXT.getSectionName(dwarfSections.isMachO), l);
         pos = putLong(0, buffer, pos);
         return pos;
     }
@@ -380,7 +382,7 @@ public abstract class DwarfSectionImpl extends BasicProgbitsSectionImpl {
     /**
      * Identify the section after which this debug section needs to be ordered when sizing and
      * creating content.
-     * 
+     *
      * @return the name of the preceding section.
      */
     public abstract String targetSectionName();
@@ -388,22 +390,24 @@ public abstract class DwarfSectionImpl extends BasicProgbitsSectionImpl {
     /**
      * Identify the layout properties of the target section which need to have been decided before
      * the contents of this section can be created.
-     * 
+     *
      * @return an array of the relevant decision kinds.
      */
     public abstract LayoutDecision.Kind[] targetSectionKinds();
 
     /**
      * Identify this debug section by name.
-     * 
+     *
      * @return the name of the debug section.
      */
-    public abstract String getSectionName();
+    public final String getSectionName() {
+        return type.getSectionName(dwarfSections.isMachO);
+    }
 
     @Override
     public int getOrDecideSize(Map<ObjectFile.Element, LayoutDecisionMap> alreadyDecided, int sizeHint) {
 
-        if (targetSectionName().startsWith(".debug")) {
+        if (targetSectionName().startsWith(".debug") || targetSectionName().startsWith("__debug")) {
             ObjectFile.Element previousElement = this.getElement().getOwner().elementForName(targetSectionName());
             DwarfSectionImpl previousSection = (DwarfSectionImpl) previousElement.getImpl();
             assert previousSection.contentByteArrayCreated();
