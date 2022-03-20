@@ -51,7 +51,6 @@ import com.oracle.objectfile.debugentry.Range;
 import com.oracle.objectfile.debugentry.StructureTypeEntry;
 import com.oracle.objectfile.debugentry.TypeEntry;
 import com.oracle.objectfile.debuginfo.DebugInfoProvider.DebugPrimitiveTypeInfo;
-import com.oracle.objectfile.elf.ELFObjectFile;
 
 /**
  * Section generator for debug_info section.
@@ -85,7 +84,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
          * depend on abbrev section size.
          */
         String abbrevSectionName = dwarfSections.getAbbrevSectionImpl().getSectionName();
-        ELFObjectFile.ELFSection abbrevSection = (ELFObjectFile.ELFSection) getElement().getOwner().elementForName(abbrevSectionName);
+        ObjectFile.Section abbrevSection = (ObjectFile.Section) getElement().getOwner().elementForName(abbrevSectionName);
         LayoutDecision sizeDecision = decisions.get(abbrevSection).getDecision(LayoutDecision.Kind.SIZE);
         deps.add(BuildDependency.createOrGet(ourContent, sizeDecision));
         return deps;
@@ -499,26 +498,38 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int layoutIndex = pos;
         setLayoutIndex(classEntry, layoutIndex);
         log(context, "  [0x%08x] class layout", pos);
-        int abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_class_layout1;
+
+        boolean hasFile = classEntry.getFileName().length() > 0;
+        if (hasFile) {
+            if (!classEntry.isPrimary()) {
+                hasFile = false;
+            }
+        }
+        int abbrevCode = hasFile ? DwarfDebugInfo.DW_ABBREV_CODE_class_layout1 : DwarfDebugInfo.DW_ABBREV_CODE_class_layout3;
         /*
          * when we don't have a separate indirect type then hub layouts need an extra data_location
          * attribute
          */
         if (!dwarfSections.useHeapBase() && dwarfSections.isHubClassEntry(classEntry)) {
-            abbrevCode = DwarfDebugInfo.DW_ABBREV_CODE_class_layout2;
+            abbrevCode = hasFile ? DwarfDebugInfo.DW_ABBREV_CODE_class_layout2 : DwarfDebugInfo.DW_ABBREV_CODE_class_layout4;
         }
         log(context, "  [0x%08x] <1> Abbrev Number %d", pos, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
         String name = classEntry.getTypeName();
+        if ("jdk.internal.loader.AbstractClassLoaderValue$Memoizer$RecursiveInvocationException".equals(name)) {
+            log(context, "test");
+        }
         log(context, "  [0x%08x]     name  0x%x (%s)", pos, debugStringIndex(name), name);
         pos = writeAttrStrp(name, buffer, pos);
         int size = classEntry.getSize();
         log(context, "  [0x%08x]     byte_size 0x%x", pos, size);
         pos = writeAttrData2((short) size, buffer, pos);
-        int fileIdx = classEntry.localFilesIdx();
-        log(context, "  [0x%08x]     file  0x%x (%s)", pos, fileIdx, classEntry.getFileName());
-        pos = writeAttrData2((short) fileIdx, buffer, pos);
-        if (abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_class_layout2) {
+        if (hasFile) {
+            int fileIdx = classEntry.localFilesIdx();
+            log(context, "  [0x%08x]     file  0x%x (%s)", pos, fileIdx, classEntry.getFileName());
+            pos = writeAttrData2((short) fileIdx, buffer, pos);
+        }
+        if (abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_class_layout2 || abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_class_layout4) {
             /* Write a data location expression to mask and/or rebase oop pointers. */
             log(context, "  [0x%08x]     data_location", pos);
             pos = writeIndirectOopConversionExpression(true, buffer, pos);
@@ -605,6 +616,11 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int pos = p;
         int modifiers = fieldEntry.getModifiers();
         boolean hasFile = fieldEntry.getFileName().length() > 0;
+        if (hasFile) {
+            if (entry.isClass() && !((ClassEntry) entry).isPrimary()) {
+                hasFile = false;
+            }
+        }
         log(context, "  [0x%08x] field definition", pos);
         int abbrevCode;
         boolean isStatic = Modifier.isStatic(modifiers);
@@ -682,7 +698,22 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int modifiers = method.getModifiers();
         boolean isStatic = Modifier.isStatic(modifiers);
         log(context, "  [0x%08x] method declaration %s", pos, methodKey);
-        int abbrevCode = (isStatic ? DwarfDebugInfo.DW_ABBREV_CODE_method_declaration_static : DwarfDebugInfo.DW_ABBREV_CODE_method_declaration);
+        FileEntry fileEntry = method.getFileEntry();
+        if (fileEntry == null) {
+            fileEntry = classEntry.getFileEntry();
+        }
+        boolean hasFile = fileEntry != null && fileEntry.getFileName().length() > 0;
+        if (hasFile) {
+            if (!classEntry.isPrimary()) {
+                hasFile = false;
+            }
+        }
+        int abbrevCode;
+        if (!hasFile) {
+            abbrevCode = (isStatic ? DwarfDebugInfo.DW_ABBREV_CODE_method_declaration_static : DwarfDebugInfo.DW_ABBREV_CODE_method_declaration);
+        } else {
+            abbrevCode = (isStatic ? DwarfDebugInfo.DW_ABBREV_CODE_method_declaration_static2 : DwarfDebugInfo.DW_ABBREV_CODE_method_declaration2);
+        }
         log(context, "  [0x%08x] <2> Abbrev Number %d", pos, abbrevCode);
         pos = writeAbbrevCode(abbrevCode, buffer, pos);
         log(context, "  [0x%08x]     external  true", pos);
@@ -690,14 +721,11 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         String name = uniqueDebugString(method.methodName());
         log(context, "  [0x%08x]     name 0x%x (%s)", pos, debugStringIndex(name), name);
         pos = writeAttrStrp(name, buffer, pos);
-        FileEntry fileEntry = method.getFileEntry();
-        if (fileEntry == null) {
-            fileEntry = classEntry.getFileEntry();
+        if (hasFile) {
+            int fileIdx = classEntry.localFilesIdx(fileEntry);
+            log(context, "  [0x%08x]     file 0x%x (%s)", pos, fileIdx, fileEntry.getFullName());
+            pos = writeAttrData2((short) fileIdx, buffer, pos);
         }
-        assert fileEntry != null;
-        int fileIdx = classEntry.localFilesIdx(fileEntry);
-        log(context, "  [0x%08x]     file 0x%x (%s)", pos, fileIdx, fileEntry.getFullName());
-        pos = writeAttrData2((short) fileIdx, buffer, pos);
         String returnTypeName = method.getValueType().getTypeName();
         int retTypeIdx = getTypeIndex(returnTypeName);
         log(context, "  [0x%08x]     type 0x%x (%s)", pos, retTypeIdx, returnTypeName);
@@ -711,7 +739,7 @@ public class DwarfInfoSectionImpl extends DwarfSectionImpl {
         int typeIdx = getLayoutIndex(classEntry);
         log(context, "  [0x%08x]     containing_type 0x%x (%s)", pos, typeIdx, classEntry.getTypeName());
         pos = writeAttrRefAddr(typeIdx, buffer, pos);
-        if (abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_method_declaration) {
+        if (!isStatic) {
             /* Record the current position so we can back patch the object pointer. */
             int objectPointerIndex = pos;
             /*

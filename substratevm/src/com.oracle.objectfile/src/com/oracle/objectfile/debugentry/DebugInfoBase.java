@@ -238,6 +238,9 @@ public abstract class DebugInfoBase {
              * Primary file name and full method name need to be written to the debug_str section.
              */
             String fileName = debugCodeInfo.fileName();
+            if ("JavaKind.java".equals(fileName)) {
+                System.out.println();
+            }
             Path filePath = debugCodeInfo.filePath();
             ResolvedJavaType ownerType = debugCodeInfo.ownerType();
             String methodName = debugCodeInfo.name();

@@ -84,7 +84,7 @@ public class DwarfDebugInfo extends DebugInfoBase {
     /**
      * Currently generated debug info relies on DWARF spec version 4.
      */
-    public static final short DW_VERSION_2 = 2;
+    public static final short DW_VERSION_2 = 4;
     public static final short DW_VERSION_4 = 4;
 
     /*
@@ -103,6 +103,8 @@ public class DwarfDebugInfo extends DebugInfoBase {
     public static final int DW_ABBREV_CODE_object_header = 8;
     public static final int DW_ABBREV_CODE_class_layout1 = 9;
     public static final int DW_ABBREV_CODE_class_layout2 = 10;
+    public static final int DW_ABBREV_CODE_class_layout3 = 38;
+    public static final int DW_ABBREV_CODE_class_layout4 = 39;
     public static final int DW_ABBREV_CODE_class_pointer = 11;
     public static final int DW_ABBREV_CODE_method_location = 12;
     public static final int DW_ABBREV_CODE_abstract_inline_method = 13;
@@ -116,6 +118,8 @@ public class DwarfDebugInfo extends DebugInfoBase {
     /* Level 2 DIEs. */
     public static final int DW_ABBREV_CODE_method_declaration = 21;
     public static final int DW_ABBREV_CODE_method_declaration_static = 22;
+    public static final int DW_ABBREV_CODE_method_declaration2 = 36;
+    public static final int DW_ABBREV_CODE_method_declaration_static2 = 37;
     public static final int DW_ABBREV_CODE_field_declaration1 = 23;
     public static final int DW_ABBREV_CODE_field_declaration2 = 24;
     public static final int DW_ABBREV_CODE_field_declaration3 = 25;

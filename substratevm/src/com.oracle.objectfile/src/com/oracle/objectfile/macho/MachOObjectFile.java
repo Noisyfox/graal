@@ -50,6 +50,15 @@ import com.oracle.objectfile.LayoutDecision;
 import com.oracle.objectfile.LayoutDecisionMap;
 import com.oracle.objectfile.ObjectFile;
 import com.oracle.objectfile.SymbolTable;
+import com.oracle.objectfile.debuginfo.DebugInfoProvider;
+import com.oracle.objectfile.elf.ELFMachine;
+import com.oracle.objectfile.elf.dwarf.DwarfARangesSectionImpl;
+import com.oracle.objectfile.elf.dwarf.DwarfAbbrevSectionImpl;
+import com.oracle.objectfile.elf.dwarf.DwarfDebugInfo;
+import com.oracle.objectfile.elf.dwarf.DwarfFrameSectionImpl;
+import com.oracle.objectfile.elf.dwarf.DwarfInfoSectionImpl;
+import com.oracle.objectfile.elf.dwarf.DwarfLineSectionImpl;
+import com.oracle.objectfile.elf.dwarf.DwarfStrSectionImpl;
 import com.oracle.objectfile.io.AssemblyBuffer;
 import com.oracle.objectfile.io.OutputAssembler;
 import org.graalvm.nativeimage.ImageSingletons;
@@ -1600,7 +1609,7 @@ public final class MachOObjectFile extends ObjectFile {
                  * However, attempts to implement this as in an extra step after linking has failed,
                  * which likely means that more other stuff needs to be fixed beforehand.
                  */
-                // flags.add(SectionFlag.DEBUG);
+                 flags.add(SectionFlag.DEBUG);
             } else if (flags.contains(
                             SectionFlag.SOME_INSTRUCTIONS) /* || name.equals("__rodata") */) {
                 /*
@@ -2336,6 +2345,56 @@ public final class MachOObjectFile extends ObjectFile {
             }
         }
         return null;
+    }
+
+    @Override
+    public void installDebugInfo(DebugInfoProvider debugInfoProvider) {
+
+        ELFMachine machine;
+        switch (cpuType) {
+            case X86_64:
+                machine = ELFMachine.X86_64;
+                break;
+            case ARM64:
+                machine = ELFMachine.AArch64;
+                break;
+            default:
+                // Not supported
+                return;
+        }
+
+        DwarfDebugInfo dwarfSections = new DwarfDebugInfo(true, machine, getByteOrder());
+        /* We need an implementation for each generated DWARF section. */
+        DwarfStrSectionImpl elfStrSectionImpl = dwarfSections.getStrSectionImpl();
+        DwarfAbbrevSectionImpl elfAbbrevSectionImpl = dwarfSections.getAbbrevSectionImpl();
+        DwarfFrameSectionImpl frameSectionImpl = dwarfSections.getFrameSectionImpl();
+        DwarfInfoSectionImpl elfInfoSectionImpl = dwarfSections.getInfoSectionImpl();
+        DwarfARangesSectionImpl elfARangesSectionImpl = dwarfSections.getARangesSectionImpl();
+        DwarfLineSectionImpl elfLineSectionImpl = dwarfSections.getLineSectionImpl();
+        /* Now we can create the section elements with empty content. */
+        newDebugSection(elfStrSectionImpl.getSectionName(), elfStrSectionImpl);
+        newDebugSection(elfAbbrevSectionImpl.getSectionName(), elfAbbrevSectionImpl);
+        newDebugSection(frameSectionImpl.getSectionName(), frameSectionImpl);
+        newDebugSection(elfInfoSectionImpl.getSectionName(), elfInfoSectionImpl);
+        newDebugSection(elfARangesSectionImpl.getSectionName(), elfARangesSectionImpl);
+        newDebugSection(elfLineSectionImpl.getSectionName(), elfLineSectionImpl);
+        /*
+         * The byte[] for each implementation's content are created and written under
+         * getOrDecideContent. Doing that ensures that all dependent sections are filled in and then
+         * sized according to the declared dependencies. However, if we leave it at that then
+         * associated reloc sections only get created when the first reloc is inserted during
+         * content write that's too late for them to have layout constraints included in the layout
+         * decision set and causes an NPE during reloc section write. So we need to create the
+         * relevant reloc sections here in advance.
+         */
+        elfStrSectionImpl.getOrCreateRelocationElement(0);
+        elfAbbrevSectionImpl.getOrCreateRelocationElement(0);
+        frameSectionImpl.getOrCreateRelocationElement(0);
+        elfInfoSectionImpl.getOrCreateRelocationElement(0);
+        elfARangesSectionImpl.getOrCreateRelocationElement(0);
+        elfLineSectionImpl.getOrCreateRelocationElement(0);
+        /* Ok now we can populate the debug info model. */
+        dwarfSections.installDebugInfo(debugInfoProvider);
     }
 
     abstract class LinkEditElement extends Element {

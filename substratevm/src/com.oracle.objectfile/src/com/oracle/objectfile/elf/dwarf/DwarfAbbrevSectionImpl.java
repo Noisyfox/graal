@@ -970,8 +970,10 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
     private int writeClassLayoutAbbrevs(@SuppressWarnings("unused") DebugContext context, byte[] buffer, int p) {
         int pos = p;
         pos = writeClassLayoutAbbrev(context, DwarfDebugInfo.DW_ABBREV_CODE_class_layout1, buffer, pos);
+        pos = writeClassLayoutAbbrev(context, DwarfDebugInfo.DW_ABBREV_CODE_class_layout3, buffer, pos);
         if (!dwarfSections.useHeapBase()) {
             pos = writeClassLayoutAbbrev(context, DwarfDebugInfo.DW_ABBREV_CODE_class_layout2, buffer, pos);
+            pos = writeClassLayoutAbbrev(context, DwarfDebugInfo.DW_ABBREV_CODE_class_layout4, buffer, pos);
         }
         return pos;
     }
@@ -986,14 +988,17 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         pos = writeAttrForm(DwarfDebugInfo.DW_FORM_strp, buffer, pos);
         pos = writeAttrType(DwarfDebugInfo.DW_AT_byte_size, buffer, pos);
         pos = writeAttrForm(DwarfDebugInfo.DW_FORM_data2, buffer, pos);
-        pos = writeAttrType(DwarfDebugInfo.DW_AT_decl_file, buffer, pos);
-        pos = writeAttrForm(DwarfDebugInfo.DW_FORM_data2, buffer, pos);
+        /* We may not have a file for a class. */
+        if (abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_class_layout1 || abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_class_layout2) {
+            pos = writeAttrType(DwarfDebugInfo.DW_AT_decl_file, buffer, pos);
+            pos = writeAttrForm(DwarfDebugInfo.DW_FORM_data2, buffer, pos);
+        }
         /*-
          * At present we definitely don't have line numbers.
            pos = writeAttrType(DwarfDebugInfo.DW_AT_decl_line, buffer, pos);
            pos = writeAttrForm(DwarfDebugInfo.DW_FORM_data2, buffer, pos);
          */
-        if (abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_class_layout2) {
+        if (abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_class_layout2 || abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_class_layout4) {
             pos = writeAttrType(DwarfDebugInfo.DW_AT_data_location, buffer, pos);
             pos = writeAttrForm(DwarfDebugInfo.DW_FORM_expr_loc, buffer, pos);
         }
@@ -1029,6 +1034,8 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         int pos = p;
         pos = writeMethodDeclarationAbbrev(context, DwarfDebugInfo.DW_ABBREV_CODE_method_declaration, buffer, pos);
         pos = writeMethodDeclarationAbbrev(context, DwarfDebugInfo.DW_ABBREV_CODE_method_declaration_static, buffer, pos);
+        pos = writeMethodDeclarationAbbrev(context, DwarfDebugInfo.DW_ABBREV_CODE_method_declaration2, buffer, pos);
+        pos = writeMethodDeclarationAbbrev(context, DwarfDebugInfo.DW_ABBREV_CODE_method_declaration_static2, buffer, pos);
         return pos;
     }
 
@@ -1041,11 +1048,14 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         pos = writeAttrForm(DwarfDebugInfo.DW_FORM_flag, buffer, pos);
         pos = writeAttrType(DwarfDebugInfo.DW_AT_name, buffer, pos);
         pos = writeAttrForm(DwarfDebugInfo.DW_FORM_strp, buffer, pos);
-        pos = writeAttrType(DwarfDebugInfo.DW_AT_decl_file, buffer, pos);
-        pos = writeAttrForm(DwarfDebugInfo.DW_FORM_data2, buffer, pos);
-        /* We don't (yet?) have a proper start line for the method itself */
-        // pos = writeAttrType(DwarfDebugInfo.DW_AT_decl_line, buffer, pos);
-        // pos = writeAttrForm(DwarfDebugInfo.DW_FORM_data2, buffer, pos);
+        /* We may not have a file and line for a method. */
+        if (abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_method_declaration2 || abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_method_declaration_static2) {
+            pos = writeAttrType(DwarfDebugInfo.DW_AT_decl_file, buffer, pos);
+            pos = writeAttrForm(DwarfDebugInfo.DW_FORM_data2, buffer, pos);
+            /* We don't (yet?) have a proper start line for the method itself */
+            // pos = writeAttrType(DwarfDebugInfo.DW_AT_decl_line, buffer, pos);
+            // pos = writeAttrForm(DwarfDebugInfo.DW_FORM_data2, buffer, pos);
+        }
         /* This probably needs to use the symbol name */
         // pos = writeAttrType(DwarfDebugInfo.DW_AT_linkage_name, buffer, pos);
         // pos = writeAttrForm(DwarfDebugInfo.DW_FORM_strp, buffer, pos);
@@ -1062,7 +1072,7 @@ public class DwarfAbbrevSectionImpl extends DwarfSectionImpl {
         // pos = writeAttrForm(DwarfDebugInfo.DW_FORM_data1, buffer, pos);
         pos = writeAttrType(DwarfDebugInfo.DW_AT_containing_type, buffer, pos);
         pos = writeAttrForm(DwarfDebugInfo.DW_FORM_ref_addr, buffer, pos);
-        if (abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_method_declaration) {
+        if (abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_method_declaration || abbrevCode == DwarfDebugInfo.DW_ABBREV_CODE_method_declaration2) {
             pos = writeAttrType(DwarfDebugInfo.DW_AT_object_pointer, buffer, pos);
             pos = writeAttrForm(DwarfDebugInfo.DW_FORM_ref_addr, buffer, pos);
         }

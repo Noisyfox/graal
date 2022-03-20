@@ -35,7 +35,6 @@ import com.oracle.objectfile.debugentry.ClassEntry;
 import com.oracle.objectfile.debugentry.StructureTypeEntry;
 import com.oracle.objectfile.debugentry.TypeEntry;
 import com.oracle.objectfile.elf.ELFMachine;
-import com.oracle.objectfile.elf.ELFObjectFile;
 import org.graalvm.compiler.debug.DebugContext;
 
 import java.nio.ByteOrder;
@@ -96,8 +95,10 @@ public abstract class DwarfSectionImpl extends BasicProgbitsSectionImpl {
     public boolean isLoadable() {
         /*
          * Even though we're a progbits section impl we're not actually loadable.
+         *
+         * MachO file requires section to be loadable to have VADDR.
          */
-        return false;
+        return dwarfSections.isMachO;
     }
 
     private String debugSectionLogName() {
@@ -435,7 +436,7 @@ public abstract class DwarfSectionImpl extends BasicProgbitsSectionImpl {
     public Set<BuildDependency> getDependencies(Map<ObjectFile.Element, LayoutDecisionMap> decisions) {
         Set<BuildDependency> deps = super.getDependencies(decisions);
         String targetName = targetSectionName();
-        ELFObjectFile.ELFSection targetSection = (ELFObjectFile.ELFSection) getElement().getOwner().elementForName(targetName);
+        ObjectFile.Section targetSection = (ObjectFile.Section) getElement().getOwner().elementForName(targetName);
         LayoutDecision ourContent = decisions.get(getElement()).getDecision(LayoutDecision.Kind.CONTENT);
         LayoutDecision ourSize = decisions.get(getElement()).getDecision(LayoutDecision.Kind.SIZE);
         LayoutDecision.Kind[] targetKinds = targetSectionKinds();
